@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Adventskalender für dich 💜</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: radial-gradient(circle at top, #ffeef7 0%, #e0f2ff 40%, #203048 100%);
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* einfache "Schneeflocken" */
+    .snow {
+      position: fixed;
+      top: -10%;
+      left: 0;
+      width: 100%;
+      height: 110%;
+      pointer-events: none;
+      background-image:
+        radial-gradient(2px 2px at 10% 20%, rgba(255,255,255,0.8) 50%, transparent 51%),
+        radial-gradient(2px 2px at 80% 30%, rgba(255,255,255,0.7) 50%, transparent 51%),
+        radial-gradient(2px 2px at 20% 80%, rgba(255,255,255,0.6) 50%, transparent 51%),
+        radial-gradient(2px 2px at 70% 90%, rgba(255,255,255,0.9) 50%, transparent 51%);
+      animation: snow 12s linear infinite;
+      opacity: 0.6;
+    }
+
+    @keyframes snow {
+      0% { transform: translateY(-10%); }
+      100% { transform: translateY(10%); }
+    }
+
+    .calendar-wrapper {
+      background: rgba(10, 18, 35, 0.85);
+      border-radius: 20px;
+      padding: 24px 18px 18px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      max-width: 900px;
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      position: relative;
+    }
+
+    .calendar-header {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .calendar-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .calendar-subtitle {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .calendar-subtitle span {
+      color: #ffdf9f;
+      font-weight: 600;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .door {
+      position: relative;
+      background: linear-gradient(135deg, rgba(255, 180, 200, 0.2), rgba(160, 190, 255, 0.2));
+      border-radius: 12px;
+      height: 80px;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.35);
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .door-inner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      text-align: center;
+    }
+
+    .door-number {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .door-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+
+    .door.locked {
+      opacity: 0.65;
+      border-style: dashed;
+      cursor: default;
+    }
+
+    .door.today {
+      border-color: #ffdf9f;
+      box-shadow: 0 0 12px rgba(255, 223, 159, 0.6);
+      background: linear-gradient(135deg, rgba(255, 215, 180, 0.35), rgba(255, 90, 145, 0.4));
+    }
+
+    .door:hover:not(.locked) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+    }
+
+    .door.opened {
+      background: linear-gradient(135deg, rgba(110, 215, 200, 0.4), rgba(255, 255, 255, 0.3));
+      border-style: solid;
+      border-color: #aaf1e2;
+    }
+
+    .door.opened .door-label {
+      opacity: 1;
+      font-weight: 600;
+    }
+
+    /* Hinweisbereich */
+    .info-bar {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      text-align: center;
+      opacity: 0.85;
+    }
+
+    .info-bar span {
+      color: #ffdf9f;
+      font-weight: 600;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 10;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal {
+      background: radial-gradient(circle at top, #fff5f8 0%, #f0f7ff 40%, #ffffff 100%);
+      color: #333;
+      border-radius: 16px;
+      max-width: 480px;
+      width: 100%;
+      padding: 20px 18px 16px;
+      position: relative;
+      box-shadow: 0 16px 30px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255, 180, 200, 0.6);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: #777;
+    }
+
+    .modal-header {
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .modal-header h2 {
+      font-size: 1.3rem;
+      margin-bottom: 4px;
+      color: #b02b5e;
+    }
+
+    .modal-header p {
+      font-size: 0.85rem;
+      color: #777;
+    }
+
+    .modal-content {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .modal-footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .modal-heart {
+      font-size: 1.3rem;
+      margin-top: 6px;
+      color: #a259ff;
+    }
+
+    /* kleine Info-Blase für gesperrte Tage */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(10, 18, 35, 0.9);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 20;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .toast.visible {
+      opacity: 1;
+    }
+
+    @media (max-width: 600px) {
+      .calendar-wrapper {
+        padding: 18px 12px 14px;
+      }
+
+      .calendar-title {
+        font-size: 1.3rem;
+      }
+
+      .calendar-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .door {
+        height: 70px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="snow"></div>
+
+  <div class="calendar-wrapper">
+    <div class="calendar-header">
+      <div class="calendar-title">Dein Adventskalender 🎄💜</div>
+      <div class="calendar-subtitle">
+        Jeden Tag im Dezember öffnet sich genau <span>ein</span> Türchen – nur für dich.
+      </div>
+    </div>
+
+    <div class="calendar-grid" id="calendarGrid">
+      <!-- Türen werden per JavaScript eingefügt -->
+    </div>
+
+    <div class="info-bar">
+      Heute kann nur das Türchen für den <span>aktuellen Tag</span> geöffnet werden.
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <button class="modal-close" id="modalClose" aria-label="Schließen">&times;</button>
+      <div class="modal-header">
+        <h2 id="modalTitle">Türchen</h2>
+        <p id="modalSubtitle"></p>
+      </div>
+      <div class="modal-content" id="modalContent"></div>
+      <div class="modal-footer">
+        Frohe Adventszeit – mit ganz viel Liebe nur für dich. 💫
+        <div class="modal-heart">💜</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Hier kannst du später Texte/Bilder/Audio für jedes Türchen anpassen.
+    // Für den Start: 24 romantisch-winterliche Beispieltexte.
+    const doorTexts = {
+      1: "Heute haben wir den 1.Dezember. Draußen ist es kalt, doch sobald ich dich sehe wird mir wohlig warm. Dein wunderschönes Lächeln wärmt mich mehr als jeder Kamin es könnte. Heute bekommst du eine wohltuende Massage von mir!",
+      2: "Die Woche geht in Tag 2. Ich freue mich jedes mal wenn die Lichterketten mich abends zuhause willkommen heißen. Doch viel mehr freue ich mich auf dein strahlendes Gesicht, sobald du mich siehst. Das stellt jedes Licht der Welt in den Schatten. Heute koche ich für dich!",
+      3: "Wir haben es in die Mitte der ersten Woche geschafft. Ein Tag näher an meinem ersten gemeinsamen Weihnachten mit dir. Um uns für den Rest der Woche zu stärken bereite ich dir heute ein kleines Frühstück zu, das dir Energie spenden soll.",
+      4: "Heute darf ich Zuhause bleiben, während du in die Kälte zu deinem Auto musst... Das tut mir im Herzen weh. Um dich ein wenig zu wärmen: Heute bekommst du im Laufe des Tages 5 Nachrichten von mir, welche Eigenschaften ich an dir besonders schätze.",
+      5: "Heute vor einem Jahr wusste ich nicht, dass es meine große Liebe sein wird, die mich an diesem Tag zum ersten Mal auf meinem Handy kontaktiert hat. Eine Entscheidung, die ich dich nie bereuen lassen werde. Darauf gibt es jetzt einen romantischen Kuss mit einer tiefen Umarmung!",
+      6: "Heute kommt der Nikolaus & Meine Schwester feiert ihren Geburtstag. Doch mein klares Highlight bist immer du. Heute springen wir gemeinsam unter die Dusche und ich verwöhne dich von Kopf bis Fuß.",
+      7: "Die erste Woche ist vorbei, wir haben den zweiten Advent. Wie wäre es heute mit einem romantischen Spaziergang? Nur du und ich.",
+      8: "Heute vor einem Jahr habe ich meine Seelenverwandte getroffen. Du bist meine für immer 💜. Darauf sollten wir heute Abend mit einem Glühwein anstoßen 🍷",
+      9: "Am zweiten Tag hast du mir bereits klar gemacht, dass man dich kennenlernen sollte, wenn man verstehen möchte was du willst. Heute bin ich da schon etwas weiter & überasche dich später mit einer Kleinigkeit 🎁",
+      10: "Respekt für das Jubiläum zur Ms 93. Aber für mich eine klare ∞/100. Die darf sich nach der leistung heute erstmal ausruhen, um den Saustall zuhause kümmere ich mich heute.",
+      11: "  todo",
+      12: "Heute ist ein guter Tag, um dir heimlich zu sagen: Ich bin so dankbar, dass es dich gibt.",
+      13: "Mit dir an meiner Seite fühlt sich selbst der dunkelste Wintertag hell und leicht an.",
+      14: "Der dritte Advent! Bald ist es soweit! Und um die letzte Woche zu toppen darfst du heute mit dem Teddypard spazieren gehen 🐆🧸",
+      15: "Es gibt so viele schöne Dinge im Winter, aber nichts ist schöner als du.",
+      16: "Wenn ich dich ansehe, brauche ich keine Weihnachtsbeleuchtung – du strahlst genug.",
+      17: "Du bist mein Zuhause – ganz egal, wie kalt oder stürmisch es draußen ist.",
+      18: "Ich freue mich auf all die Winterabende, an denen wir einfach nur wir sind.",
+      19: "Du bist wie ein erster Schneefall: überraschend, wunderschön und irgendwie magisch.",
+      20: "Mit dir gemeinsam durch die Kälte zu laufen, ist tausendmal besser als allein durch die Sonne.",
+      21: "Jeder Tag mit dir macht mein Herz ein kleines bisschen weicher und voller.",
+      22: "Danke, dass du da bist – nicht nur zur Weihnachtszeit, sondern an jedem einzelnen Tag.",
+      23: "Unsere gemeinsamen Erinnerungen sind meine liebsten Sterne am Winterhimmel.",
+      24: "Heute ist unser erstes gemeinsames Weihnachten. Und ich wünsche mir nur eins: Bis ans Ende meiner Tage meine Weihnachten mit dir verbringen. Ich liebe dich.💜 - Mein Outfit für diesen Tag darfst du wählen."
+    };
+
+    // Optional: Untertitel pro Türchen (z. B. kleine Hinweise)
+    const doorSubtitles = {
+      1: "Ein warmer Gedanke zum Start in den Advent.",
+      2: "Eine kleine Lichterkette fürs Herz.",
+      3: "Ein Hauch von Weihnachtsmagie.",
+      4: "Ein Wunsch, der mit Schneeflocken reist.",
+      5: "Kuschelgedanke für heute.",
+      6: "Ein Nikolaus-Gedanke nur für dich.",
+      7: "Ein Wintermoment zu zweit.",
+      8: "Eine Portion Geborgenheit.",
+      9: "Ein Geschenk aus Worten.",
+      10: "Ein kleiner Frostschutz fürs Herz.",
+      11: "Ein Kapitel voller Wir.",
+      12: "Ein leiser Dank an dich.",
+      13: "Licht für einen Wintertag.",
+      14: "Ein Sternengedanke.",
+      15: "Winterzauber in einem Satz.",
+      16: "Heute strahlst du besonders.",
+      17: "Ein Zuhause-Gefühl.",
+      18: "Ein Abend nur für uns.",
+      19: "Ein bisschen Wintermagie.",
+      20: "Hand in Hand durch die Kälte.",
+      21: "Ein Herz voller Wärme.",
+      22: "Ein Danke in Worten.",
+      23: "Erinnerungen wie Sternenstaub.",
+      24: "Ein Weihnachtswunsch mit dir."
+    };
+
+    const grid = document.getElementById("calendarGrid");
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const modalClose = document.getElementById("modalClose");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalSubtitle = document.getElementById("modalSubtitle");
+    const modalContent = document.getElementById("modalContent");
+    const toast = document.getElementById("toast");
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => {
+        toast.classList.remove("visible");
+      }, 2600);
+    }
+
+    function openModal(day) {
+      const text = doorTexts[day] || "Hier wartet ein Moment nur für dich.";
+      const subtitle = doorSubtitles[day] || "Ein kleiner Gedanke von mir für dich.";
+
+      modalTitle.textContent = "Türchen " + day;
+      modalSubtitle.textContent = subtitle;
+      modalContent.textContent = text;
+      modalBackdrop.classList.add("active");
+    }
+
+    function closeModal() {
+      modalBackdrop.classList.remove("active");
+    }
+
+    modalClose.addEventListener("click", closeModal);
+    modalBackdrop.addEventListener("click", (e) => {
+      if (e.target === modalBackdrop) {
+        closeModal();
+      }
+    });
+
+    // Datum prüfen – nur das Türchen des aktuellen Tages in DEZEMBER ist wirklich "öffnbar".
+    function setupCalendar() {
+      const now = new Date();
+      const month = now.getMonth(); // 0 = Jan, 11 = Dez
+      const day = now.getDate();
+
+      for (let i = 1; i <= 24; i++) {
+        const door = document.createElement("div");
+        door.className = "door";
+        door.dataset.day = i;
+
+        const inner = document.createElement("div");
+        inner.className = "door-inner";
+
+        const num = document.createElement("div");
+        num.className = "door-number";
+        num.textContent = i;
+
+        const label = document.createElement("div");
+        label.className = "door-label";
+        label.textContent = "Klick mich";
+
+        inner.appendChild(num);
+        inner.appendChild(label);
+        door.appendChild(inner);
+
+        // Zustand setzen:
+        // Nur im Dezember & nur das aktuelle Tages-Türchen ist aktiv.
+        if (month === 11 && day === i) {
+          door.classList.add("today");
+        } else {
+          door.classList.add("locked");
+          label.textContent = "Gespeert";
+        }
+
+        door.addEventListener("click", () => {
+          const doorDay = parseInt(door.dataset.day, 10);
+
+          if (!(month === 11)) {
+            showToast("Der Kalender ist für den Dezember gedacht. Heute ist kein Dezember-Tag.");
+            return;
+          }
+
+          if (doorDay !== day) {
+            if (doorDay < day) {
+              showToast("Dieses Türchen konntest du nur am " + doorDay + ". Dezember öffnen.");
+            } else {
+              showToast("Dieses Türchen kannst du am " + doorDay + ". Dezember öffnen.");
+            }
+            return;
+          }
+
+          // Türchen darf geöffnet werden:
+          door.classList.remove("today");
+          door.classList.remove("locked");
+          door.classList.add("opened");
+          label.textContent = "Geöffnet";
+          openModal(doorDay);
+        });
+
+        grid.appendChild(door);
+      }
+    }
+
+    setupCalendar();
+  </script>
+</body>
+</html>
